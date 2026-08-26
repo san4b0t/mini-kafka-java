@@ -2,44 +2,29 @@ package test.java;
 
 import main.java.MiniKafka;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import static org.junit.jupiter.api.Assertions.*;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+
+import java.io.File;
+import java.nio.file.Path;
 
 public class MiniKafkaTest {
 
+    @TempDir
+    Path tempDir;
+
     @Test
-    public void testConcurrentProducers() throws InterruptedException {
-        MiniKafka broker = new MiniKafka();
-        int numberOfThreads = 100;
+    public void testDiskPersistenceAndRead() throws Exception {
+        File logFile = tempDir.resolve("test_log.dat").toFile();
+        MiniKafka broker = new MiniKafka(logFile.getAbsolutePath());
 
-        ExecutorService executor = Executors.newFixedThreadPool(numberOfThreads);
-        CountDownLatch startingGate = new CountDownLatch(1);
-        CountDownLatch finishLine = new CountDownLatch(numberOfThreads);
+        broker.produce("Hello Disk 1");
+        broker.produce("Hello Disk 2");
 
-        for (int i = 0; i < numberOfThreads; ++i) {
-            final int threadId = i;
-            executor.submit(() -> {
-               try {
-                   startingGate.await();
-                   broker.produce("Test Message from thread " + threadId);
-               } catch (InterruptedException e) {
-                   Thread.currentThread().interrupt();
-               } finally {
-                   finishLine.countDown();
-               }
-            });
-        }
+        String msg1 = broker.consume();
+        String msg2 = broker.consume();
 
-        startingGate.countDown();
-
-        finishLine.await();
-        executor.shutdown();
-
-        assertDoesNotThrow(() -> {
-            String lastMessage = broker.consume(99);
-            assertNotNull(lastMessage);
-        });
+        assertEquals("Hello Disk 1", msg1);
+        assertEquals("Hello Disk 2", msg2);
     }
 }
