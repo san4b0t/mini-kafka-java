@@ -18,11 +18,9 @@ public class MiniKafkaTest {
         File logFile = tempDir.resolve("test_log.dat").toFile();
         MiniKafka broker = new MiniKafka(logFile.getAbsolutePath());
 
-        // Produce messages (spaces and mutex semaphores are handled internally)
         broker.produce("Hello Disk 1");
         broker.produce("Hello Disk 2");
 
-        // Consume messages in strict FIFO order (no offsets needed anymore)
         String msg1 = broker.consume();
         String msg2 = broker.consume();
 
