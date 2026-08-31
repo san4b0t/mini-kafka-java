@@ -6,6 +6,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.io.IOException;
+import java.util.Scanner;
 import java.util.concurrent.Semaphore;
 
 public class MiniKafka {
@@ -13,21 +14,25 @@ public class MiniKafka {
     private long producerOffset = 0;
     private long consumerOffset = 0;
 
-    private final Semaphore spaces = new Semaphore(10);
+    private final Semaphore spaces = new Semaphore(50);
     private final Semaphore items = new Semaphore(0);
     private final Semaphore mutex = new Semaphore(1);
 
     public MiniKafka(String filePath) {
         try {
             File file = new File(filePath);
-            if (!file.exists()) {
-                file.createNewFile();
+
+            if (file.createNewFile()) {
+                System.out.println("Created NEW log file at: " + file.getAbsolutePath());
+            } else {
+                System.out.println("Opened EXISTING log file at: " + file.getAbsolutePath());
             }
+
             RandomAccessFile raf = new RandomAccessFile(file, "rw");
             this.channel = raf.getChannel();
             this.producerOffset = channel.size();
             this.consumerOffset = 0;
-            System.out.println("📁 Storage initialized at: " + filePath);
+            System.out.println("Storage initialized. Ready to start buffer simulation.\n");
         } catch (IOException e) {
             throw new RuntimeException("Failed to initialize storage", e);
         }
@@ -55,7 +60,7 @@ public class MiniKafka {
             channel.force(false);
 
             producerOffset += 4 + data.length;
-            System.out.println("📥 Saved to disk: " + message + " (Offset: " + offset + ")");
+            System.out.println("Saved to disk: " + message + " (Offset: " + offset + ")");
         } catch (IOException e) {
             throw new RuntimeException("Failed to write to disk", e);
         } finally {
@@ -98,32 +103,47 @@ public class MiniKafka {
     }
 
     public static void main(String[] args) {
-        MiniKafka broker = new MiniKafka("minikafka_log.dat");
+
+        if (args.length < 1) {
+            System.err.println("Error: No file path provided.");
+            System.err.println("Usage: java main.java.MiniKafka <filepath>");
+            System.exit(1);
+        }
+
+        String filePath = args[0];
+        MiniKafka broker = new MiniKafka(filePath);
 
         Thread consumerThread = new Thread(() -> {
             try {
                 while (true) {
-                    System.out.println("⏳ Consumer waiting for next item...");
                     String data = broker.consume();
-                    System.out.println("✅ Processed from disk: " + data);
+                    System.out.println("Processed from disk: " + data);
                     Thread.sleep(1000);
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
         });
+
+        consumerThread.setDaemon(true);
         consumerThread.start();
 
-        Thread producerThread = new Thread(() -> {
-            try {
-                Thread.sleep(800);
-                broker.produce("Persistent_Lab1.zip");
-                Thread.sleep(500);
-                broker.produce("Persistent_Lab2.zip");
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Producer ready. Enter submission files to queue for grading (type 'exit' to quit):");
+
+        try {
+            while (true) {
+                String input = scanner.nextLine();
+                if (input.equalsIgnoreCase("exit")) {
+                    break;
+                }
+                broker.produce(input);
             }
-        });
-        producerThread.start();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } finally {
+            scanner.close();
+            System.out.println("Exiting broker...");
+        }
     }
 }

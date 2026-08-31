@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.concurrent.CountDownLatch;
 
 public class MiniKafkaTest {
 
@@ -26,5 +27,35 @@ public class MiniKafkaTest {
 
         assertEquals("Hello Disk 1", msg1);
         assertEquals("Hello Disk 2", msg2);
+    }
+
+    @Test
+    public void testConcurrentProducersAndConsumers() throws Exception {
+        File logFile = tempDir.resolve("concurrent_log.dat").toFile();
+        MiniKafka broker = new MiniKafka(logFile.getAbsolutePath());
+
+        int messageCount = 100;
+        CountDownLatch finishLine = new CountDownLatch(messageCount);
+
+        Thread consumer = new Thread(() -> {
+            try {
+                for (int i = 0; i < messageCount; i++) {
+                    String msg = broker.consume();
+                    assertNotNull(msg);
+                    assertTrue(msg.startsWith("Concurrent Message"));
+                    finishLine.countDown();
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        consumer.start();
+
+        for (int i = 0; i < messageCount; i++) {
+            broker.produce("Concurrent Message " + i);
+        }
+
+        finishLine.await();
+        assertEquals(0, finishLine.getCount());
     }
 }
