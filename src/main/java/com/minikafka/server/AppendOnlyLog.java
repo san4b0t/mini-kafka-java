@@ -43,7 +43,7 @@ public class AppendOnlyLog {
 
     public synchronized String read(long targetOffset) throws IOException {
         if (targetOffset >= writeOffset) {
-            return null; // No new data available yet
+            return null;
         }
 
         ByteBuffer lengthBuffer = ByteBuffer.allocate(4);
