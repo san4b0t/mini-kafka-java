@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.minikafka.grpc";
+option java_outer_classname = "MiniKafkaProto";
+
+package minikafka;
+
+service MiniKafkaService {
+  rpc Produce(ProduceRequest) returns (ProduceResponse);
+  rpc Consume(ConsumeRequest) returns (ConsumeResponse);
+}
+
+message ProduceRequest {
+  string message = 1;
+}
+
+message ProduceResponse {
+  int64 offset = 1;
+}
+
+message ConsumeRequest {
+  int64 offset = 1;
+}
+
+message ConsumeResponse {
+  string message = 1;
+  int64 next_offset = 2;
+}
