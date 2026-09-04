@@ -49,7 +49,7 @@ public class BrokerClient {
                 break;
 
             ProduceRequest request = ProduceRequest.newBuilder().setMessage(input).build();
-            stub.produce(request);
+            client.stub.produce(request);
         }
         System.exit(0);
     }
