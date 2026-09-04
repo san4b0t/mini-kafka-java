@@ -22,7 +22,7 @@ public class BrokerClient {
                 ConsumeRequest request = ConsumeRequest.newBuilder().setOffset(currentOffset).build();
                 ConsumeResponse response = stub.consume(request);
 
-                if (!response.getMessage().isEmpty()) {
+                if (response.getNextOffset() > currentOffset) {
                     System.out.println("\n[Consumed] " + response.getMessage());
                     currentOffset = response.getNextOffset();
                 } else {
