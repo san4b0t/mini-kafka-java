@@ -27,3 +27,8 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+### Ommit data files ###
+/data
+*.dat
+*.class
