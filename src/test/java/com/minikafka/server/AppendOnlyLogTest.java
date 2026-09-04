@@ -2,6 +2,7 @@ package com.minikafka.server;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -50,6 +51,17 @@ class AppendOnlyLogTest {
 
         assertEquals("persisted", reopenedLog.read(0));
         assertEquals(recordSize("persisted"), reopenedLog.append("next"));
+    }
+
+    @Test
+    void rejectsAnAppendThatWouldExceedTheLogLimit() throws Exception {
+        long maxLogBytes = recordSize("first");
+        AppendOnlyLog log = new AppendOnlyLog(
+                tempDirectory.resolve("limited.log").toString(), maxLogBytes);
+        log.append("first");
+
+        assertThrows(LogCapacityExceededException.class, () -> log.append("next"));
+        assertNull(log.read(maxLogBytes));
     }
 
     private static int recordSize(String message) {
