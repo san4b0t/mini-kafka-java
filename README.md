@@ -4,7 +4,7 @@
 ![Java](https://img.shields.io/badge/Java-17%2B-ED8B00.svg?logo=openjdk&logoColor=white)
 ![Maven](https://img.shields.io/badge/Maven-3.9%2B-C71A36.svg?logo=apachemaven&logoColor=white)
 
-A small Kafka-style message queue built in Java for learning about append-only storage, byte offsets, gRPC, concurrent producers, durability, and back-pressure.
+A small Kafka-style message queue built in Java with append-only storage, byte offsets, gRPC, concurrent producers, durability, and back-pressure.
 
 The current version runs as one broker with one persistent log. It does not yet implement topics, partitions, replication, consumer groups, or a multi-broker cluster.
 
