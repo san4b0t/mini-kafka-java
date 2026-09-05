@@ -1,13 +1,14 @@
 package com.minikafka.server;
 
 import java.io.File;
+import java.io.EOFException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.io.IOException;
 
-public class AppendOnlyLog {
+public class AppendOnlyLog implements AutoCloseable {
     private final FileChannel channel;
     private final long maxLogBytes;
     private long writeOffset = 0;
@@ -55,8 +56,9 @@ public class AppendOnlyLog {
         buffer.put(data);
         buffer.flip();
 
+        long position = offset;
         while (buffer.hasRemaining()) {
-            channel.write(buffer, offset);
+            position += channel.write(buffer, position);
         }
         channel.force(false);
 
@@ -70,14 +72,30 @@ public class AppendOnlyLog {
         }
 
         ByteBuffer lengthBuffer = ByteBuffer.allocate(4);
-        channel.read(lengthBuffer, targetOffset);
+        readFully(lengthBuffer, targetOffset);
         lengthBuffer.flip();
         int length = lengthBuffer.getInt();
 
         ByteBuffer dataBuffer = ByteBuffer.allocate(length);
-        channel.read(dataBuffer, targetOffset + 4);
+        readFully(dataBuffer, targetOffset + 4);
         dataBuffer.flip();
 
         return new String(dataBuffer.array(), StandardCharsets.UTF_8);
+    }
+
+    @Override
+    public synchronized void close() throws IOException {
+        channel.close();
+    }
+
+    private void readFully(ByteBuffer buffer, long startPosition) throws IOException {
+        long position = startPosition;
+        while (buffer.hasRemaining()) {
+            int bytesRead = channel.read(buffer, position);
+            if (bytesRead < 0) {
+                throw new EOFException("Unexpected end of log at byte " + position);
+            }
+            position += bytesRead;
+        }
     }
 }
