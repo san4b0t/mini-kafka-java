@@ -16,8 +16,7 @@ public class BrokerServer extends MiniKafkaServiceGrpc.MiniKafkaServiceImplBase 
     static final long DEFAULT_MAX_LOG_BYTES = 1024L * 1024 * 1024;
     static final int DEFAULT_MAX_MESSAGE_BYTES = 1024 * 1024;
     private static final int GRPC_MESSAGE_OVERHEAD_BYTES = 1024;
-    private static final Pattern SIZE_PATTERN =
-            Pattern.compile("^(\\d+)(B|KiB|MiB|GiB)?$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern SIZE_PATTERN = Pattern.compile("^(\\d+)(B|KiB|MiB|GiB)?$", Pattern.CASE_INSENSITIVE);
 
     private final AppendOnlyLog log;
     private final int maxMessageBytes;
@@ -92,7 +91,6 @@ public class BrokerServer extends MiniKafkaServiceGrpc.MiniKafkaServiceImplBase 
                         .build();
                 responseObserver.onNext(response);
             } else {
-                // If no data, return empty response (client will poll again)
                 responseObserver.onNext(ConsumeResponse.newBuilder().build());
             }
             responseObserver.onCompleted();
